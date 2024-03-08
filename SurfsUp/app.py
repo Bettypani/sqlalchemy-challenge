@@ -95,36 +95,60 @@ def temperature():
 
     return jsonify(tobs_dict)
 
+
 @app.route("/api/v1.0/<start>")
-@app.route("/api/v1.0/<start>/<end>")
-def stats(start=None, end=None):
+def start(start=None):
+
+
+    start = dt.datetime.strptime(start, "%Y-%m-%d")
 
     session = Session(engine)
 
-     # Convert start and end date strings to datetime objects
-    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+    results_3 = session.query(func.avg(measurement.tobs), func.max(measurement.tobs), func.min(measurement.tobs)).\
+    filter(measurement.date >= start).all()
 
-    # If end date is not provided, set it to the maximum date available in the dataset minus one day
-    if not end:
-            max_date = session.query(func.max(measurement.date)).scalar()
-            end_date = dt.datetime.strptime(max_date, "%Y-%m-%d")
-    else:
-            end_date = dt.datetime.strptime(end, "%Y-%m-%d")
 
-        # Query min, avg, and max temperatures between start and end dates
-    results_3 = session.query(func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)).\
-            filter(measurement.date >= start_date).filter(measurement.date <= end_date).all()
-        
     session.close()
 
-        # Convert query results to a dictionary
-    stats_dict = {
-            "TMIN": results_3[0][0],
-            "TAVG": results_3[0][1],
-            "TMAX": results_3[0][2]
+    #start_dict = {start for date, average in results_3, max in results_3, min in results_3}
+    for avg, min, max in results_3:
+        start_dict = {
+            "Average Temperature": round(avg, 2),
+            "Min Temp": min, 
+            "Max_Temp": max
         }
 
-    return jsonify(stats_dict)
+
+    return jsonify(start_dict)
+
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def stats(start=None, end=None):
+
+    start = dt.datetime.strptime(start, "%Y-%m-%d")
+    end = dt.datetime.strptime(end, "%Y-%m-%d")
+
+    session = Session(engine)
+
+    results_4 = session.query(func.avg(measurement.tobs), func.max(measurement.tobs), func.min(measurement.tobs)).\
+    filter(measurement.date >= start).\
+    filter(measurement.date <= end).all()
+    
+    session.close()
+
+    for avg, min, max in results_4:
+        end_dict = {
+            "Average Temperature": round(avg, 2),
+            "Min Temp": min, 
+            "Max_Temp": max
+
+        }
+
+    return jsonify(end_dict)
+
+if __name__ == '__main__':
+    app.run(debug=True)
     
 
 
